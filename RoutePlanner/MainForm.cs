@@ -2,6 +2,7 @@
 using FlightPlanner.RoutePlanning;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 
 namespace RoutePlanner
 {
@@ -27,7 +28,7 @@ namespace RoutePlanner
 
             ValidateInputs();
 
-            //CreateTestData();
+//            CreateTestData();
         }
 
         private void btnNewRoute_Click(object sender, System.EventArgs e)
@@ -181,6 +182,40 @@ namespace RoutePlanner
                 totalDistance += distance;
             }
             labelTotalSearch.Text = string.Format("Total: {0}nm", totalDistance);
+        }
+
+        private static readonly System.Globalization.CultureInfo cultureInfo = new System.Globalization.CultureInfo("en-US");
+
+        private void buttonPasteOnAir_Click(object sender, System.EventArgs e)
+        {
+            string clipText = Clipboard.GetText();
+            if (string.IsNullOrEmpty(clipText))
+                return;
+
+            string[] elements = clipText.Split('\t');
+            if (!airports.TryGetValue(elements[0], out AirportData from))
+                return;
+
+            if (!airports.TryGetValue(elements[1], out AirportData to))
+                return;
+
+            int cargo = 0;
+            int passenger = 0;
+            if (!string.IsNullOrEmpty(elements[4]))
+            {
+                string tmp = new string(elements[4].Where(char.IsDigit).ToArray());
+                if (!int.TryParse(tmp, out cargo))
+                    return;
+            }
+
+            if (!string.IsNullOrEmpty(elements[5]))
+            {
+                string tmp = new string(elements[5].Where(char.IsDigit).ToArray());
+                if (!int.TryParse(tmp, out passenger))
+                    return;
+            }
+
+            AddNewRoute(from, to, cargo, passenger);
         }
     }
 }

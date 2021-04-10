@@ -45,6 +45,7 @@ namespace RoutePlanner
             this.buttonSearch = new System.Windows.Forms.Button();
             this.listBoxSearch = new System.Windows.Forms.ListBox();
             this.labelTotalSearch = new System.Windows.Forms.Label();
+            this.buttonPasteOnAir = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownCargo)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPassenger)).BeginInit();
             this.groupBoxCreateRoute.SuspendLayout();
@@ -206,11 +207,22 @@ namespace RoutePlanner
             this.labelTotalSearch.TabIndex = 16;
             this.labelTotalSearch.Text = "Total";
             // 
+            // buttonPasteOnAir
+            // 
+            this.buttonPasteOnAir.Location = new System.Drawing.Point(150, 13);
+            this.buttonPasteOnAir.Name = "buttonPasteOnAir";
+            this.buttonPasteOnAir.Size = new System.Drawing.Size(120, 23);
+            this.buttonPasteOnAir.TabIndex = 10;
+            this.buttonPasteOnAir.Text = "Paste From OnAir";
+            this.buttonPasteOnAir.UseVisualStyleBackColor = true;
+            this.buttonPasteOnAir.Click += new System.EventHandler(this.buttonPasteOnAir_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(528, 540);
+            this.Controls.Add(this.buttonPasteOnAir);
             this.Controls.Add(this.labelTotalSearch);
             this.Controls.Add(this.listBoxSearch);
             this.Controls.Add(this.buttonSearch);
@@ -248,6 +260,7 @@ namespace RoutePlanner
         private System.Windows.Forms.Button buttonSearch;
         private System.Windows.Forms.ListBox listBoxSearch;
         private System.Windows.Forms.Label labelTotalSearch;
+        private System.Windows.Forms.Button buttonPasteOnAir;
     }
 }
 
