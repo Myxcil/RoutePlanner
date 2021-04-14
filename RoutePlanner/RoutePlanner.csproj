@@ -48,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="RoutePlanning\AirportData.cs" />
+    <Compile Include="RoutePlanning\AStarNode.cs" />
     <Compile Include="RoutePlanning\AStarRoute.cs" />
     <Compile Include="RoutePlanning\FlightPlanLeg.cs" />
     <Compile Include="MainForm.cs">

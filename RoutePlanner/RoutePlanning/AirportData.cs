@@ -25,10 +25,13 @@ namespace FlightPlanner.RoutePlanning
         public readonly string type;
 
         //--------------------------------------------------------------------------------------------------------------------------------
-        public static IDictionary<string, AirportData> Parse(string path)
-        {
-            Dictionary<string, AirportData> airports = new Dictionary<string, AirportData>();
+        private static readonly Dictionary<string, AirportData> airports = new Dictionary<string, AirportData>();
+        public static IDictionary<string, AirportData> Airports { get { return airports; } }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
+        static AirportData()
+        {
+            airports.Clear();
             using (TextFieldParser textFieldParser = new TextFieldParser("airports.dat"))
             {
                 textFieldParser.SetDelimiters(",");
@@ -42,8 +45,6 @@ namespace FlightPlanner.RoutePlanning
                     }
                 }
             }
-
-            return airports;
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------

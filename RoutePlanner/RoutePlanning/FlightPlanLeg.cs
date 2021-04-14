@@ -4,15 +4,17 @@ namespace FlightPlanner.RoutePlanning
     //------------------------------------------------------------------------------------------------------------------------------------
     class FlightPlanLeg
     {
+        //--------------------------------------------------------------------------------------------------------------------------------
         public readonly AirportData airportData;
-        public readonly int cargo;
-        public readonly int passenger;
+        public readonly ulong loaded;
+        public int cargo;
+        public int passenger;
 
-        public FlightPlanLeg(AirportData airportData, int cargo, int passenger)
+        //--------------------------------------------------------------------------------------------------------------------------------
+        public FlightPlanLeg(AirportData airportData, ulong loaded)
         {
             this.airportData = airportData;
-            this.cargo = cargo;
-            this.passenger = passenger;
+            this.loaded = loaded;
         }
     }
 }

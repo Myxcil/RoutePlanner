@@ -1,83 +1,111 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 //----------------------------------------------------------------------------------------------------------------------------------------
 namespace FlightPlanner.RoutePlanning
 {
     //------------------------------------------------------------------------------------------------------------------------------------
-    class AStarRoute
+    class AStarRoute : IDisposable
     {
         //--------------------------------------------------------------------------------------------------------------------------------
-        private class Node
-        {
-            public readonly Node parent;
-            public readonly AirportData airportData;
-            
-            public int routesCovered;
-            public int cargoLoad;
-            public int passengerLoad;
-
-            public int costFromStart;
-            public int estimatedCost;
-            public int TotalCost { get { return costFromStart + estimatedCost; } }
-
-
-            public Node(Node parent, AirportData airportData)
-            {
-                this.parent = parent;
-                this.airportData = airportData;
-            }
-        }
+        public static bool Verbose { set; get; }
 
         //--------------------------------------------------------------------------------------------------------------------------------
         private readonly Dictionary<string, AirportData> uniqueAirports = new Dictionary<string, AirportData>();
-        private readonly List<Node> openList = new List<Node>();
+        private readonly List<AStarNode> openList = new List<AStarNode>();
+        private AStarNode targetNode = null;
+        private ulong allRoutesFlag = 0;
 
-        private Node targetNode = null;
+        //--------------------------------------------------------------------------------------------------------------------------------
+        public int CargoCostFactor { set; get; } = 50;
+        public static bool ContinueSearch { set; get; } = true;
+
+        //------------------------------------------------------------------------------------------------------------------------------------------
+        public void Dispose()
+        {
+            uniqueAirports.Clear();
+            openList.Clear();
+            targetNode = null;
+        }
 
         //--------------------------------------------------------------------------------------------------------------------------------
         public IList<FlightPlanLeg> CalculateRoute(IList<Route> routes, IDictionary<string, AirportData> airports)
         {
-            DebugPrintRoutes(routes, airports);
+            if (Verbose) DebugPrintRoutes(routes, airports);
 
-            CreateUniqueAirpots(routes, airports);
+            CreateUniqueAirports(routes, airports);
 
             openList.Clear();
 
-            Node startNode = new Node(null, airports[routes[0].from]);
+            AStarNode startNode = new AStarNode(null, routes[0].from);
 
-            startNode.routesCovered = 0;
-            CalculateCargo(startNode.airportData, routes, out startNode.cargoLoad, out startNode.passengerLoad);
+            ulong loaded = 0;
+            ulong unloaded = 0;
+            EvaluateLoad(startNode.airportData, routes, ref loaded, ref unloaded);
+            
+            startNode.loaded = loaded;
+            startNode.unloaded = unloaded;
 
             startNode.costFromStart = 0;
-            startNode.estimatedCost = CountOpenRoutes(startNode, routes);
+            startNode.estimatedCost = EstimateCost(startNode, routes);
 
             openList.Add(startNode);
 
             targetNode = null;
 
+            ContinueSearch = true;
             Search(routes);
 
             List<FlightPlanLeg> flightPlan = new List<FlightPlanLeg>();
             if (targetNode != null)
             {
-                Node node = targetNode;
+                AStarNode node = targetNode;
                 while(node != null)
                 {
-                    flightPlan.Add(new FlightPlanLeg(node.airportData, node.cargoLoad, node.passengerLoad));
+                    flightPlan.Add(new FlightPlanLeg(node.airportData, node.loaded));
                     node = node.parent;
                 }
                 flightPlan.Reverse();
-                DebugPrintFlightPlan(flightPlan);
+
+                int cargo = 0;
+                int passenger = 0;
+                for (int i = 0; i < flightPlan.Count; ++i)
+                {
+                    EvaluateCargoChange(flightPlan[i].airportData, flightPlan[i].loaded, routes, ref cargo, ref passenger);
+                    flightPlan[i].cargo = cargo;
+                    flightPlan[i].passenger = passenger;
+                }
+                                
+                if (Verbose) DebugPrintFlightPlan(flightPlan);
             }
             return flightPlan;
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void EvaluateCargoChange(AirportData airportData, ulong loaded, IList<Route> routes, ref int cargo, ref int passenger)
+        {
+            for(int i=0; i < routes.Count; ++i)
+            {
+                Route route = routes[i];
+                if (route.from == airportData)
+                {
+                    cargo += route.cargo;
+                    passenger += route.passenger;
+                }
+                else if (route.to == airportData && (loaded & (BIT << i)) != 0)
+                {
+                    cargo -= route.cargo;
+                    passenger -= route.passenger;
+                }
+            }
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
 
         private void DebugPrintFlightPlan(IList<FlightPlanLeg> flightPlan)
         {
-            Console.WriteLine("Legs: {0}", flightPlan.Count - 1);
+            Debug.WriteLine(string.Format("Legs: {0}", flightPlan.Count - 1));
 
             int totalDistance = 0;
             for (int i=1; i < flightPlan.Count; ++i)
@@ -86,67 +114,84 @@ namespace FlightPlanner.RoutePlanning
                 AirportData from = flightPlan[i - 1].airportData;
                 AirportData to = flightPlan[i].airportData;
                 int distance = from.DistanceTo(to);
-                Console.WriteLine(" {0} -> {1} : {2,5}nm {3,6}lb {4,3}pax", from.ICAO, to.ICAO, distance, parent.cargo, parent.passenger);
+                Debug.WriteLine(string.Format(" {0} -> {1} : {2,5}nm {3,6}lb {4,3}pax", from.ICAO, to.ICAO, distance, parent.cargo, parent.passenger));
                 totalDistance += distance;
             }
-            Console.WriteLine("        total : {0}nm", totalDistance);
-            Console.WriteLine();
+            Debug.WriteLine(string.Format("        total : {0}nm", totalDistance));
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
         private void DebugPrintRoutes(IList<Route> routes, IDictionary<string, AirportData> airports)
         {
-            Console.WriteLine("Routes: {0}", routes.Count);
+            Debug.WriteLine(string.Format("Routes: {0}", routes.Count));
             int totalDistance = 0;
             for (int i = 0; i < routes.Count; ++i)
             {
                 Route route = routes[i];
-                AirportData from = airports[route.from];
-                AirportData to = airports[route.to];
-                int distance = from.DistanceTo(to);
-                Console.WriteLine(" {0} -> {1} : {2,5}nm {3,6}lb {4,3}pax", from.ICAO, to.ICAO, distance, route.cargo, route.passenger);
+                AirportData from = route.from;
+                AirportData to = route.to;
+                int distance = route.Distance;
+                Debug.WriteLine(string.Format(" {0} -> {1} : {2,5}nm {3,6}lb {4,3}pax", from.ICAO, to.ICAO, distance, route.cargo, route.passenger));
                 totalDistance += distance;
+                if (i > 0)
+                {
+                    if (routes[i-1].to != from)
+                    {
+                        totalDistance += routes[i - 1].to.DistanceTo(from);
+                    }
+                }
             }
-            Console.WriteLine("        total : {0,5}nm", totalDistance);
-            Console.WriteLine();
+            Debug.WriteLine(string.Format("        total : {0,5}nm", totalDistance));
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
-        private void CreateUniqueAirpots(IList<Route> routes, IDictionary<string, AirportData> airports)
+        private void CreateUniqueAirports(IList<Route> routes, IDictionary<string, AirportData> airports)
         {
             uniqueAirports.Clear();
             for (int i = 0; i < routes.Count; ++i)
             {
                 Route route = routes[i];
-                if (!uniqueAirports.ContainsKey(route.from))
+                if (!uniqueAirports.ContainsKey(route.from.ICAO))
                 {
-                    uniqueAirports.Add(route.from, airports[route.from]);
+                    uniqueAirports.Add(route.from.ICAO, airports[route.from.ICAO]);
                 }
-                if (!uniqueAirports.ContainsKey(route.to))
+                if (!uniqueAirports.ContainsKey(route.to.ICAO))
                 {
-                    uniqueAirports.Add(routes[i].to, airports[route.to]);
+                    uniqueAirports.Add(routes[i].to.ICAO, airports[route.to.ICAO]);
                 }
             }
 
-            Console.WriteLine("Unique airports: {0}", uniqueAirports.Count);
-            foreach (var kv in uniqueAirports)
+            allRoutesFlag = 0;
+            for(int i=0; i < routes.Count; ++i)
             {
-                AirportData airportData = kv.Value;
-                Console.WriteLine(" {0} {1}", airportData.ICAO, airportData.name);
+                allRoutesFlag |= BIT << i;
             }
-            Console.WriteLine();
+
+            if (Verbose)
+            {
+                Debug.WriteLine(string.Format("Unique airports: {0}", uniqueAirports.Count));
+                foreach (var kv in uniqueAirports)
+                {
+                    AirportData airportData = kv.Value;
+                    Debug.WriteLine(string.Format(" {0} {1}", airportData.ICAO, airportData.name));
+                }
+            }
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
         private void Search(IList<Route> routes)
         {
-            for(; ;)
+            if (Verbose) Debug.WriteLine("------------------------------------------------------------");
+
+            while (ContinueSearch)
             {
-                Node node = PopFromOpenList();
+                AStarNode node = PopFromOpenList();
                 if (node == null)
                     break;
 
-                if (IsPlanValid(node, routes))
+                if (Verbose) Debug.WriteLine(node);
+
+                if (IsPlanValid(node))
                 {
                     targetNode = node;
                     break;
@@ -158,19 +203,17 @@ namespace FlightPlanner.RoutePlanning
                     if (node.airportData == airportData)
                         continue;
 
-                    Node nextNode = new Node(node, airportData);
-
-                    int numCovered = CountCovertedRoutes(nextNode, routes);
-                    if (numCovered > node.routesCovered)
+                    ulong loaded = node.loaded;
+                    ulong unloaded = node.unloaded;
+                    if (EvaluateLoad(airportData, routes, ref loaded, ref unloaded))
                     {
-                        CalculateCargo(nextNode.airportData, routes, out nextNode.cargoLoad, out nextNode.passengerLoad);
-                        nextNode.cargoLoad += node.cargoLoad;
-                        nextNode.passengerLoad += node.passengerLoad;
+                        AStarNode nextNode = new AStarNode(node, airportData);
 
-                        nextNode.routesCovered = numCovered;
-                        
+                        nextNode.loaded = loaded;
+                        nextNode.unloaded = unloaded;
+
                         nextNode.costFromStart = CalculateCost(nextNode);
-                        nextNode.estimatedCost = CountOpenRoutes(nextNode, routes);
+                        nextNode.estimatedCost = EstimateCost(nextNode, routes);
                         
                         openList.Add(nextNode);
                     }
@@ -178,10 +221,48 @@ namespace FlightPlanner.RoutePlanning
 
                 openList.Sort(CompareNodes);
             }
+
+            if (Verbose) Debug.WriteLine("------------------------------------------------------------");
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
-        private int CalculateCost(Node node)
+        private const ulong BIT = 1;
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private bool EvaluateLoad(AirportData airportData, IList<Route> routes, ref ulong loaded, ref ulong unloaded)
+        {
+            bool changedLoad = false;
+
+            ulong flag;
+
+            for(int i=0; i < routes.Count; ++i)
+            {
+                Route route = routes[i];
+                flag = BIT << i;
+                if ((unloaded & flag) != 0)
+                    continue;
+
+                if (route.from == airportData && ((loaded & flag) == 0))
+                {
+                    loaded |= flag;
+                    changedLoad = true;
+                }
+
+                if ((loaded & flag) == 0)
+                    continue;
+
+                if (route.to == airportData && ((unloaded & flag) == 0))
+                {
+                    unloaded |= flag;
+                    changedLoad = true;
+                }
+            }
+
+            return changedLoad;
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private int CalculateCost(AStarNode node)
         {
             if (node.parent != null)
             {
@@ -194,37 +275,29 @@ namespace FlightPlanner.RoutePlanning
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
-        private bool IsPlanValid(Node node, IList<Route> routes)
+        private bool IsPlanValid(AStarNode node)
         {
-            for (int i = 0; i < routes.Count; ++i)
-            {
-                Route route = routes[i];
-                AirportData from = uniqueAirports[route.from];
-                AirportData to = uniqueAirports[route.to];
-                if (!IsRouteCovered(node, from, to))
-                {
-                    return false;
-                }
-            }
-            return true;
+            return node.loaded == allRoutesFlag && node.unloaded == allRoutesFlag;
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
-        private int CountCovertedRoutes(Node node, IList<Route> routes)
+        private int EstimateCost(AStarNode node, IList<Route> routes)
         {
-            return routes.Count - CountOpenRoutes(node, routes);
+            return CountOpenRoutes(node, routes) * CargoCostFactor;
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
-        private int CountOpenRoutes(Node node, IList<Route> routes)
+        private int CountOpenRoutes(AStarNode node, IList<Route> routes)
         {
             int numOpenRoutes = 0;
             for (int i = 0; i < routes.Count; ++i)
             {
-                Route route = routes[i];
-                AirportData from = uniqueAirports[route.from];
-                AirportData to = uniqueAirports[route.to];
-                if (!IsRouteCovered(node, from, to))
+                ulong flag = BIT << i;
+                if ((node.loaded & flag) == 0)
+                {
+                    ++numOpenRoutes;
+                }
+                if ((node.unloaded & flag) == 0)
                 {
                     ++numOpenRoutes;
                 }
@@ -233,55 +306,9 @@ namespace FlightPlanner.RoutePlanning
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
-        private bool IsRouteCovered(Node node, AirportData from, AirportData to)
+        private AStarNode PopFromOpenList()
         {
-            bool hasFrom = false;
-            bool hasTo = false;
-
-            while (node != null)
-            {
-                if (!hasTo && node.airportData == to)
-                {
-                    hasTo = true;
-                }
-                else if (!hasFrom && node.airportData == from)
-                {
-                    hasFrom = true;
-                    break;
-                }
-                node = node.parent;
-            }
-
-            return hasFrom && hasTo;
-        }
-
-        //--------------------------------------------------------------------------------------------------------------------------------
-        private void CalculateCargo(AirportData airportData, IList<Route> routes, out int cargo, out int passenger)
-        {
-            cargo = 0;
-            passenger = 0;
-            for(int i=0; i < routes.Count; ++i)
-            {
-                Route route = routes[i];
-                AirportData from = uniqueAirports[route.from];
-                AirportData to = uniqueAirports[route.to];
-                if (from == airportData)
-                {
-                    cargo += route.cargo;
-                    passenger += route.passenger;
-                }
-                else if (to == airportData)
-                {
-                    cargo -= route.cargo;
-                    passenger -= route.passenger;
-                }
-            }
-        }
-
-        //--------------------------------------------------------------------------------------------------------------------------------
-        private Node PopFromOpenList()
-        {
-            Node node = null;
+            AStarNode node = null;
             if (openList.Count > 0)
             {
                 int last = openList.Count - 1;
@@ -292,7 +319,7 @@ namespace FlightPlanner.RoutePlanning
         }
 
         //------------------------------------------------------------------------------------------------------------------------------------------
-        private static int CompareNodes(Node a, Node b)
+        private static int CompareNodes(AStarNode a, AStarNode b)
         {
             int diff = b.TotalCost - a.TotalCost;
             return diff;

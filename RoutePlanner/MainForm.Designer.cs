@@ -43,17 +43,22 @@ namespace RoutePlanner
             this.groupBoxCreateRoute = new System.Windows.Forms.GroupBox();
             this.labelTotalDistance = new System.Windows.Forms.Label();
             this.buttonSearch = new System.Windows.Forms.Button();
-            this.listBoxSearch = new System.Windows.Forms.ListBox();
             this.labelTotalSearch = new System.Windows.Forms.Label();
             this.buttonPasteOnAir = new System.Windows.Forms.Button();
+            this.textBoxResult = new System.Windows.Forms.TextBox();
+            this.buttonDeleteSelected = new System.Windows.Forms.Button();
+            this.numericUpDownCargoWeight = new System.Windows.Forms.NumericUpDown();
+            this.buttonStop = new System.Windows.Forms.Button();
+            this.progressBarSearch = new System.Windows.Forms.ProgressBar();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownCargo)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPassenger)).BeginInit();
             this.groupBoxCreateRoute.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownCargoWeight)).BeginInit();
             this.SuspendLayout();
             // 
             // buttonNewRoute
             // 
-            this.buttonNewRoute.Location = new System.Drawing.Point(13, 13);
+            this.buttonNewRoute.Location = new System.Drawing.Point(21, 12);
             this.buttonNewRoute.Name = "buttonNewRoute";
             this.buttonNewRoute.Size = new System.Drawing.Size(75, 23);
             this.buttonNewRoute.TabIndex = 0;
@@ -67,7 +72,7 @@ namespace RoutePlanner
             this.checkedListBoxRoutes.FormattingEnabled = true;
             this.checkedListBoxRoutes.Location = new System.Drawing.Point(287, 13);
             this.checkedListBoxRoutes.Name = "checkedListBoxRoutes";
-            this.checkedListBoxRoutes.Size = new System.Drawing.Size(228, 124);
+            this.checkedListBoxRoutes.Size = new System.Drawing.Size(228, 229);
             this.checkedListBoxRoutes.TabIndex = 1;
             this.checkedListBoxRoutes.TabStop = false;
             // 
@@ -125,6 +130,7 @@ namespace RoutePlanner
             this.numericUpDownCargo.Name = "numericUpDownCargo";
             this.numericUpDownCargo.Size = new System.Drawing.Size(120, 20);
             this.numericUpDownCargo.TabIndex = 2;
+            this.numericUpDownCargo.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
             // numericUpDownPassenger
             // 
@@ -132,6 +138,7 @@ namespace RoutePlanner
             this.numericUpDownPassenger.Name = "numericUpDownPassenger";
             this.numericUpDownPassenger.Size = new System.Drawing.Size(120, 20);
             this.numericUpDownPassenger.TabIndex = 3;
+            this.numericUpDownPassenger.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
             // labelPassenger
             // 
@@ -164,7 +171,7 @@ namespace RoutePlanner
             this.groupBoxCreateRoute.Controls.Add(this.comboBoxTo);
             this.groupBoxCreateRoute.Controls.Add(this.numericUpDownCargo);
             this.groupBoxCreateRoute.Controls.Add(this.labelCargo);
-            this.groupBoxCreateRoute.Location = new System.Drawing.Point(12, 42);
+            this.groupBoxCreateRoute.Location = new System.Drawing.Point(12, 109);
             this.groupBoxCreateRoute.Name = "groupBoxCreateRoute";
             this.groupBoxCreateRoute.Size = new System.Drawing.Size(269, 110);
             this.groupBoxCreateRoute.TabIndex = 12;
@@ -174,7 +181,7 @@ namespace RoutePlanner
             // labelTotalDistance
             // 
             this.labelTotalDistance.AutoSize = true;
-            this.labelTotalDistance.Location = new System.Drawing.Point(288, 138);
+            this.labelTotalDistance.Location = new System.Drawing.Point(284, 245);
             this.labelTotalDistance.Name = "labelTotalDistance";
             this.labelTotalDistance.Size = new System.Drawing.Size(31, 13);
             this.labelTotalDistance.TabIndex = 13;
@@ -182,7 +189,7 @@ namespace RoutePlanner
             // 
             // buttonSearch
             // 
-            this.buttonSearch.Location = new System.Drawing.Point(13, 159);
+            this.buttonSearch.Location = new System.Drawing.Point(12, 247);
             this.buttonSearch.Name = "buttonSearch";
             this.buttonSearch.Size = new System.Drawing.Size(100, 23);
             this.buttonSearch.TabIndex = 14;
@@ -190,18 +197,10 @@ namespace RoutePlanner
             this.buttonSearch.UseVisualStyleBackColor = true;
             this.buttonSearch.Click += new System.EventHandler(this.buttonSearch_Click);
             // 
-            // listBoxSearch
-            // 
-            this.listBoxSearch.FormattingEnabled = true;
-            this.listBoxSearch.Location = new System.Drawing.Point(13, 189);
-            this.listBoxSearch.Name = "listBoxSearch";
-            this.listBoxSearch.Size = new System.Drawing.Size(268, 238);
-            this.listBoxSearch.TabIndex = 15;
-            // 
             // labelTotalSearch
             // 
             this.labelTotalSearch.AutoSize = true;
-            this.labelTotalSearch.Location = new System.Drawing.Point(9, 430);
+            this.labelTotalSearch.Location = new System.Drawing.Point(9, 518);
             this.labelTotalSearch.Name = "labelTotalSearch";
             this.labelTotalSearch.Size = new System.Drawing.Size(31, 13);
             this.labelTotalSearch.TabIndex = 16;
@@ -217,26 +216,93 @@ namespace RoutePlanner
             this.buttonPasteOnAir.UseVisualStyleBackColor = true;
             this.buttonPasteOnAir.Click += new System.EventHandler(this.buttonPasteOnAir_Click);
             // 
+            // textBoxResult
+            // 
+            this.textBoxResult.Location = new System.Drawing.Point(12, 276);
+            this.textBoxResult.Multiline = true;
+            this.textBoxResult.Name = "textBoxResult";
+            this.textBoxResult.ReadOnly = true;
+            this.textBoxResult.Size = new System.Drawing.Size(269, 239);
+            this.textBoxResult.TabIndex = 17;
+            // 
+            // buttonDeleteSelected
+            // 
+            this.buttonDeleteSelected.Location = new System.Drawing.Point(179, 42);
+            this.buttonDeleteSelected.Name = "buttonDeleteSelected";
+            this.buttonDeleteSelected.Size = new System.Drawing.Size(91, 23);
+            this.buttonDeleteSelected.TabIndex = 18;
+            this.buttonDeleteSelected.TabStop = false;
+            this.buttonDeleteSelected.Text = "Delete Selected";
+            this.buttonDeleteSelected.UseVisualStyleBackColor = true;
+            this.buttonDeleteSelected.Click += new System.EventHandler(this.buttonDeleteSelected_Click);
+            // 
+            // numericUpDownCargoWeight
+            // 
+            this.numericUpDownCargoWeight.Location = new System.Drawing.Point(118, 247);
+            this.numericUpDownCargoWeight.Maximum = new decimal(new int[] {
+            100000,
+            0,
+            0,
+            0});
+            this.numericUpDownCargoWeight.Name = "numericUpDownCargoWeight";
+            this.numericUpDownCargoWeight.Size = new System.Drawing.Size(68, 20);
+            this.numericUpDownCargoWeight.TabIndex = 10;
+            this.numericUpDownCargoWeight.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.numericUpDownCargoWeight.Value = new decimal(new int[] {
+            50,
+            0,
+            0,
+            0});
+            // 
+            // buttonStop
+            // 
+            this.buttonStop.Enabled = false;
+            this.buttonStop.Location = new System.Drawing.Point(192, 247);
+            this.buttonStop.Name = "buttonStop";
+            this.buttonStop.Size = new System.Drawing.Size(89, 23);
+            this.buttonStop.TabIndex = 19;
+            this.buttonStop.Text = "Stop";
+            this.buttonStop.UseVisualStyleBackColor = true;
+            this.buttonStop.Click += new System.EventHandler(this.buttonStop_Click);
+            // 
+            // progressBarSearch
+            // 
+            this.progressBarSearch.Location = new System.Drawing.Point(288, 276);
+            this.progressBarSearch.MarqueeAnimationSpeed = 0;
+            this.progressBarSearch.Name = "progressBarSearch";
+            this.progressBarSearch.Size = new System.Drawing.Size(227, 21);
+            this.progressBarSearch.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
+            this.progressBarSearch.TabIndex = 20;
+            this.progressBarSearch.Value = 1;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(528, 540);
+            this.ClientSize = new System.Drawing.Size(546, 540);
+            this.Controls.Add(this.progressBarSearch);
+            this.Controls.Add(this.buttonStop);
+            this.Controls.Add(this.numericUpDownCargoWeight);
+            this.Controls.Add(this.buttonDeleteSelected);
+            this.Controls.Add(this.textBoxResult);
             this.Controls.Add(this.buttonPasteOnAir);
             this.Controls.Add(this.labelTotalSearch);
-            this.Controls.Add(this.listBoxSearch);
             this.Controls.Add(this.buttonSearch);
             this.Controls.Add(this.labelTotalDistance);
             this.Controls.Add(this.groupBoxCreateRoute);
             this.Controls.Add(this.checkedListBoxRoutes);
             this.Controls.Add(this.buttonNewRoute);
+            this.KeyPreview = true;
             this.Name = "MainForm";
             this.Text = "Route Planner for OnAir";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Load += new System.EventHandler(this.MainForm_Load);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.MainForm_KeyDown);
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownCargo)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPassenger)).EndInit();
             this.groupBoxCreateRoute.ResumeLayout(false);
             this.groupBoxCreateRoute.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownCargoWeight)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -258,9 +324,13 @@ namespace RoutePlanner
         private System.Windows.Forms.GroupBox groupBoxCreateRoute;
         private System.Windows.Forms.Label labelTotalDistance;
         private System.Windows.Forms.Button buttonSearch;
-        private System.Windows.Forms.ListBox listBoxSearch;
         private System.Windows.Forms.Label labelTotalSearch;
         private System.Windows.Forms.Button buttonPasteOnAir;
+        private System.Windows.Forms.TextBox textBoxResult;
+        private System.Windows.Forms.Button buttonDeleteSelected;
+        private System.Windows.Forms.NumericUpDown numericUpDownCargoWeight;
+        private System.Windows.Forms.Button buttonStop;
+        private System.Windows.Forms.ProgressBar progressBarSearch;
     }
 }
 

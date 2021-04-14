@@ -1,25 +1,37 @@
-﻿using System.Windows.Forms;
+﻿using System;
+using System.Text;
+using System.Windows.Forms;
 using FlightPlanner.RoutePlanning;
 using System.Collections.Generic;
 using System.Linq;
-using System.Globalization;
+using System.Threading;
+using System.Diagnostics;
 
+//----------------------------------------------------------------------------------------------------------------------------------------
 namespace RoutePlanner
 {
+    //------------------------------------------------------------------------------------------------------------------------------------
     public partial class MainForm : Form
     {
+        //--------------------------------------------------------------------------------------------------------------------------------
         public MainForm()
         {
             InitializeComponent();
         }
 
-        private IDictionary<string, AirportData> airports;
+        //--------------------------------------------------------------------------------------------------------------------------------
         private string[] airportIDs;
 
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private StringBuilder sb = null;
+        private int totalDistance = 0;
+        private delegate void OnFinished();
+        private Thread threadSearch;
+
+        //--------------------------------------------------------------------------------------------------------------------------------
         private void MainForm_Load(object sender, System.EventArgs e)
         {
-            airports = AirportData.Parse("airports.dat");
-            airportIDs = airports.Keys.ToArray();
+            airportIDs = AirportData.Airports.Keys.ToArray();
 
             comboBoxFrom.Items.AddRange(airportIDs);
             comboBoxTo.Items.AddRange(airportIDs);
@@ -28,9 +40,10 @@ namespace RoutePlanner
 
             ValidateInputs();
 
-//            CreateTestData();
+            CreateTestData();
         }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
         private void btnNewRoute_Click(object sender, System.EventArgs e)
         {
             checkedListBoxRoutes.Items.Clear();
@@ -43,8 +56,11 @@ namespace RoutePlanner
             ValidateInputs();
         }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
+        /**
         private static readonly Route[] testRoutes =
         {
+            /*
             new Route("MYNN", "KMIA", 368, 0),
             new Route("KMIA", "MYCB", 282, 0),
             new Route("MYCB", "KHST", 204, 0),
@@ -56,30 +72,56 @@ namespace RoutePlanner
             new Route("MYAT", "KMIA", 278, 0),
             new Route("KMIA", "KOPF", 0, 2),
         };
+        /**/
+        private static readonly Route[] testRoutes =
+        {
+            new Route("EDDM", "LOWI", 0, 3),
+            new Route("LOWI", "EGNT", 146, 0),
+            new Route("EGNT", "EDDF", 487, 0),
+            new Route("EDDF", "LFML", 0, 2),
+            new Route("LFML", "EHAM", 344, 0),
+            new Route("EHAM", "LFPG", 184, 0),
+            new Route("LFPG", "EHBK", 194, 0),
+            new Route("EHBK", "LIML", 567, 0),
+            
+            new Route("EGMC", "EGGP", 500, 0),
+            new Route("EGGP", "EFTP", 0, 3),
+            new Route("EFTP", "LMML", 249, 0),
+            new Route("LMML", "LERT", 415, 0),
+            new Route("LERT", "EDLV", 443, 0),
+            new Route("EDLV", "LEVT", 410, 0),
+            new Route("LEVT", "EPKT", 485, 0),
+            new Route("EPKT", "LIRP", 0, 1),
+        };
+        /**/
 
+        //--------------------------------------------------------------------------------------------------------------------------------
         private void CreateTestData()
         {
             for(int i=0; i < testRoutes.Length; ++i)
             {
                 Route route = testRoutes[i];
-                AirportData from = airports[route.from];
-                AirportData to = airports[route.to];
-                AddNewRoute(from, to, route.cargo, route.passenger);
+                AddNewRoute(route.from, route.to, route.cargo, route.passenger);
             }
+            AStarRoute.Verbose = true;
         }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
         private void buttonAdd_Click(object sender, System.EventArgs e)
         {
-            AirportData from = airports[comboBoxFrom.Text];
-            AirportData to = airports[comboBoxTo.Text];
+            AirportData from = AirportData.Airports[comboBoxFrom.Text];
+            AirportData to = AirportData.Airports[comboBoxTo.Text];
+
+            Route newRoute = new Route(from, to, (int)numericUpDownCargo.Value, (int)numericUpDownPassenger.Value);
+            checkedListBoxRoutes.Items.Add(newRoute, true);
 
             comboBoxFrom.Focus();
-
         }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
         private void AddNewRoute(AirportData from, AirportData to, int cargo, int passenger)
         {
-            RouteEx newRoute = new RouteEx(from.ICAO, to.ICAO, from.DistanceTo(to), cargo, passenger);
+            Route newRoute = new Route(from, to, cargo, passenger);
             checkedListBoxRoutes.Items.Add(newRoute, true);
 
             RefreshTotalDistance();
@@ -87,22 +129,26 @@ namespace RoutePlanner
             ValidateInputs();
         }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
         private void comboBoxFrom_Leave(object sender, System.EventArgs e)
         {
             AutoselectAirport(comboBoxFrom);
         }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
         private void comboBoxTo_Leave(object sender, System.EventArgs e)
         {
             AutoselectAirport(comboBoxTo);
         }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
         private void AutoselectAirport(ComboBox comboBox)
         {
             comboBox.SelectedIndex = System.Array.IndexOf(airportIDs, comboBox.Text.ToUpper());
             ValidateInputs();
         }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
         private void ValidateInputs()
         {
             bool isValid = true;
@@ -120,8 +166,8 @@ namespace RoutePlanner
             {
                 for (int i = 0; i < checkedListBoxRoutes.Items.Count; ++i)
                 {
-                    RouteEx route = (RouteEx)checkedListBoxRoutes.Items[i];
-                    if (route.from == from.ICAO || route.to == to.ICAO)
+                    Route route = (Route)checkedListBoxRoutes.Items[i];
+                    if (route.from == from || route.to == to)
                     {
                         isValid = false;
                         break;
@@ -133,6 +179,7 @@ namespace RoutePlanner
             buttonSearch.Enabled = checkedListBoxRoutes.Items.Count > 1;
         }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
         private bool ValidateAirport(ComboBox comboBox, out AirportData airportData)
         {
             airportData = null;
@@ -140,63 +187,131 @@ namespace RoutePlanner
             if (comboBox.SelectedItem == null)
                 return false;
 
-            if (!airports.TryGetValue(comboBox.Text, out airportData))
+            if (!AirportData.Airports.TryGetValue(comboBox.Text, out airportData))
                 return false;
 
             return true;
         }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
         private void RefreshTotalDistance()
         {
             int totalDistance = 0;
+            int additionalDistance = 0;
             for (int i = 0; i < checkedListBoxRoutes.Items.Count; ++i)
             {
-                RouteEx route = (RouteEx)checkedListBoxRoutes.Items[i];
-                totalDistance += route.distance;
+                Route route = (Route)checkedListBoxRoutes.Items[i];
+                totalDistance += route.Distance;
+                if (i > 0)
+                {
+                    Route prev = (Route)checkedListBoxRoutes.Items[i - 1];
+                    if (prev.to != route.from)
+                    {
+                        additionalDistance += prev.to.DistanceTo(route.from);
+                    }
+                }
             }
-            labelTotalDistance.Text = string.Format("Total: {0}nm", totalDistance);
+            labelTotalDistance.Text = string.Format("Total: {0}nm ({1}nm)", totalDistance + additionalDistance, totalDistance);
         }
 
+        //--------------------------------------------------------------------------------------------------------------------------------
         private void buttonSearch_Click(object sender, System.EventArgs e)
         {
-            listBoxSearch.Items.Clear();
+            textBoxResult.Clear();
 
             List<Route> routes = new List<Route>();
             for (int i = 0; i < checkedListBoxRoutes.CheckedItems.Count; ++i)
             {
-                RouteEx route = (RouteEx)checkedListBoxRoutes.CheckedItems[i];
+                Route route = (Route)checkedListBoxRoutes.CheckedItems[i];
                 routes.Add(route);
             }
 
-            AStarRoute search = new AStarRoute();
-            IList<FlightPlanLeg> legs = search.CalculateRoute(routes, airports);
+            buttonSearch.Enabled = false;
+            buttonStop.Enabled = true;
 
-            int totalDistance = 0;
-            for (int i = 1; i < legs.Count; ++i)
-            {
-                FlightPlanLeg prev = legs[i - 1];
-                FlightPlanLeg curr = legs[i];
-                int distance = prev.airportData.DistanceTo(curr.airportData);
-                string text = string.Format("{0} -> {1} {2,5}nm {3,6}lb {4,4}p", prev.airportData.ICAO, curr.airportData.ICAO, distance, prev.cargo, prev.passenger);
-                listBoxSearch.Items.Add(text);
-                totalDistance += distance;
-            }
-            labelTotalSearch.Text = string.Format("Total: {0}nm", totalDistance);
+            progressBarSearch.MarqueeAnimationSpeed = 10;
+
+            threadSearch = new Thread(LaunchRouteSearch);
+            threadSearch.Start(routes);
         }
 
-        private static readonly System.Globalization.CultureInfo cultureInfo = new System.Globalization.CultureInfo("en-US");
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void buttonStop_Click(object sender, EventArgs e)
+        {
+            OnSearchDone();
+        }
 
-        private void buttonPasteOnAir_Click(object sender, System.EventArgs e)
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void LaunchRouteSearch(object data)
+        {
+            Debug.WriteLine("launched search thread");
+            long startTicks = DateTime.Now.Ticks;
+
+            IList<Route> routes = (IList<Route>)data;
+
+            totalDistance = 0;
+            sb = new StringBuilder();
+
+            using (AStarRoute search = new AStarRoute())
+            {
+                search.CargoCostFactor = (int)numericUpDownCargoWeight.Value;
+                
+                IList<FlightPlanLeg> legs = search.CalculateRoute(routes, AirportData.Airports);
+
+                for (int i = 1; i < legs.Count; ++i)
+                {
+                    FlightPlanLeg prev = legs[i - 1];
+                    FlightPlanLeg curr = legs[i];
+                    int distance = prev.airportData.DistanceTo(curr.airportData);
+                    sb.AppendFormat("{0} -> {1} {2,5}nm {3,6}lb {4,4}p", prev.airportData.ICAO, curr.airportData.ICAO, distance, prev.cargo, prev.passenger);
+                    sb.AppendLine();
+                    totalDistance += distance;
+                }
+            }
+
+            var duration = TimeSpan.FromTicks(DateTime.Now.Ticks - startTicks).TotalSeconds;
+            Debug.WriteLine(string.Format("search done: {0}s", duration));
+
+            Invoke(new OnFinished(OnSearchDone));
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void OnSearchDone()
+        {
+            if (threadSearch != null && threadSearch.IsAlive)
+            {
+                AStarRoute.ContinueSearch = false;
+                threadSearch = null;
+            }
+
+            textBoxResult.Text = sb != null ? sb.ToString() : string.Empty;
+            labelTotalSearch.Text = string.Format("Total: {0}nm", totalDistance);
+           
+            progressBarSearch.Value = 0;
+            progressBarSearch.MarqueeAnimationSpeed = 0;
+
+            buttonSearch.Enabled = true;
+            buttonStop.Enabled = false;
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void buttonPasteOnAir_Click(object sender, EventArgs e)
+        {
+            PasteFromClipboard();
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void PasteFromClipboard()
         {
             string clipText = Clipboard.GetText();
             if (string.IsNullOrEmpty(clipText))
                 return;
 
             string[] elements = clipText.Split('\t');
-            if (!airports.TryGetValue(elements[0], out AirportData from))
+            if (!AirportData.Airports.TryGetValue(elements[0], out AirportData from))
                 return;
 
-            if (!airports.TryGetValue(elements[1], out AirportData to))
+            if (!AirportData.Airports.TryGetValue(elements[1], out AirportData to))
                 return;
 
             int cargo = 0;
@@ -216,6 +331,44 @@ namespace RoutePlanner
             }
 
             AddNewRoute(from, to, cargo, passenger);
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void buttonDeleteSelected_Click(object sender, System.EventArgs e)
+        {
+            DeleteSelectedRoute();
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void DeleteSelectedRoute()
+        {
+            if (checkedListBoxRoutes.SelectedIndex >= 0 && checkedListBoxRoutes.SelectedIndex < checkedListBoxRoutes.Items.Count)
+            {
+                checkedListBoxRoutes.Items.RemoveAt(checkedListBoxRoutes.SelectedIndex);
+            }
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void MainForm_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.P)
+            {
+                PasteFromClipboard();
+            }
+            else if (e.KeyCode == Keys.Delete)
+            {
+                DeleteSelectedRoute();
+            }
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (threadSearch != null)
+            {
+                threadSearch.Abort();
+                threadSearch = null;
+            }
         }
     }
 }
