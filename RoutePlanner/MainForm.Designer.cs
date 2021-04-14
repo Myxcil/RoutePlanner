@@ -47,13 +47,13 @@ namespace RoutePlanner
             this.buttonPasteOnAir = new System.Windows.Forms.Button();
             this.textBoxResult = new System.Windows.Forms.TextBox();
             this.buttonDeleteSelected = new System.Windows.Forms.Button();
-            this.numericUpDownCargoWeight = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDownScale = new System.Windows.Forms.NumericUpDown();
             this.buttonStop = new System.Windows.Forms.Button();
             this.progressBarSearch = new System.Windows.Forms.ProgressBar();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownCargo)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPassenger)).BeginInit();
             this.groupBoxCreateRoute.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownCargoWeight)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownScale)).BeginInit();
             this.SuspendLayout();
             // 
             // buttonNewRoute
@@ -236,20 +236,20 @@ namespace RoutePlanner
             this.buttonDeleteSelected.UseVisualStyleBackColor = true;
             this.buttonDeleteSelected.Click += new System.EventHandler(this.buttonDeleteSelected_Click);
             // 
-            // numericUpDownCargoWeight
+            // numericUpDownScale
             // 
-            this.numericUpDownCargoWeight.Location = new System.Drawing.Point(118, 247);
-            this.numericUpDownCargoWeight.Maximum = new decimal(new int[] {
-            100000,
+            this.numericUpDownScale.Location = new System.Drawing.Point(118, 247);
+            this.numericUpDownScale.Minimum = new decimal(new int[] {
+            1,
             0,
             0,
             0});
-            this.numericUpDownCargoWeight.Name = "numericUpDownCargoWeight";
-            this.numericUpDownCargoWeight.Size = new System.Drawing.Size(68, 20);
-            this.numericUpDownCargoWeight.TabIndex = 10;
-            this.numericUpDownCargoWeight.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
-            this.numericUpDownCargoWeight.Value = new decimal(new int[] {
-            50,
+            this.numericUpDownScale.Name = "numericUpDownScale";
+            this.numericUpDownScale.Size = new System.Drawing.Size(68, 20);
+            this.numericUpDownScale.TabIndex = 10;
+            this.numericUpDownScale.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.numericUpDownScale.Value = new decimal(new int[] {
+            1,
             0,
             0,
             0});
@@ -282,7 +282,7 @@ namespace RoutePlanner
             this.ClientSize = new System.Drawing.Size(546, 540);
             this.Controls.Add(this.progressBarSearch);
             this.Controls.Add(this.buttonStop);
-            this.Controls.Add(this.numericUpDownCargoWeight);
+            this.Controls.Add(this.numericUpDownScale);
             this.Controls.Add(this.buttonDeleteSelected);
             this.Controls.Add(this.textBoxResult);
             this.Controls.Add(this.buttonPasteOnAir);
@@ -302,7 +302,7 @@ namespace RoutePlanner
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPassenger)).EndInit();
             this.groupBoxCreateRoute.ResumeLayout(false);
             this.groupBoxCreateRoute.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownCargoWeight)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownScale)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -328,7 +328,7 @@ namespace RoutePlanner
         private System.Windows.Forms.Button buttonPasteOnAir;
         private System.Windows.Forms.TextBox textBoxResult;
         private System.Windows.Forms.Button buttonDeleteSelected;
-        private System.Windows.Forms.NumericUpDown numericUpDownCargoWeight;
+        private System.Windows.Forms.NumericUpDown numericUpDownScale;
         private System.Windows.Forms.Button buttonStop;
         private System.Windows.Forms.ProgressBar progressBarSearch;
     }

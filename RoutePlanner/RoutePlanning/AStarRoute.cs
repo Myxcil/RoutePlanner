@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 //----------------------------------------------------------------------------------------------------------------------------------------
 namespace FlightPlanner.RoutePlanning
@@ -16,9 +17,10 @@ namespace FlightPlanner.RoutePlanning
         private readonly List<AStarNode> openList = new List<AStarNode>();
         private AStarNode targetNode = null;
         private ulong allRoutesFlag = 0;
+        private int avgDistance = 0;
 
         //--------------------------------------------------------------------------------------------------------------------------------
-        public int CargoCostFactor { set; get; } = 50;
+        public int CostScale { set; get; } = 1;
         public static bool ContinueSearch { set; get; } = true;
 
         //------------------------------------------------------------------------------------------------------------------------------------------
@@ -37,22 +39,9 @@ namespace FlightPlanner.RoutePlanning
             CreateUniqueAirports(routes, airports);
 
             openList.Clear();
-
-            AStarNode startNode = new AStarNode(null, routes[0].from);
-
-            ulong loaded = 0;
-            ulong unloaded = 0;
-            EvaluateLoad(startNode.airportData, routes, ref loaded, ref unloaded);
-            
-            startNode.loaded = loaded;
-            startNode.unloaded = unloaded;
-
-            startNode.costFromStart = 0;
-            startNode.estimatedCost = EstimateCost(startNode, routes);
-
-            openList.Add(startNode);
-
             targetNode = null;
+
+            avgDistance = DetermineAvgDistance() / CostScale;
 
             ContinueSearch = true;
             Search(routes);
@@ -80,6 +69,26 @@ namespace FlightPlanner.RoutePlanning
                 if (Verbose) DebugPrintFlightPlan(flightPlan);
             }
             return flightPlan;
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private int DetermineAvgDistance()
+        {
+            string[] keys = uniqueAirports.Keys.ToArray();
+
+            int total = 0;
+            int count = 0;
+            for (int i = 0; i < keys.Length - 1; ++i)
+            {
+                AirportData a = uniqueAirports[keys[i]];
+                for(int j=i+1; j < keys.Length; ++j)
+                {
+                    AirportData b = uniqueAirports[keys[j]];
+                    total += a.DistanceTo(b);
+                    ++count;
+                }
+            }
+            return total / count;
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
@@ -183,13 +192,22 @@ namespace FlightPlanner.RoutePlanning
         {
             if (Verbose) Debug.WriteLine("------------------------------------------------------------");
 
+            AStarNode startNode = new AStarNode(null, routes[0].from);
+            EvaluateLoad(startNode.airportData, routes, ref startNode.loaded, ref startNode.unloaded);
+
+            startNode.costFromStart = 0;
+            startNode.estimatedCost = EstimateCost(startNode, routes);
+            startNode.totalCost = startNode.costFromStart + startNode.estimatedCost;
+
+            openList.Add(startNode);
+
             while (ContinueSearch)
             {
                 AStarNode node = PopFromOpenList();
                 if (node == null)
                     break;
 
-                if (Verbose) Debug.WriteLine(node);
+                if (Verbose) Debug.WriteLine(node.ToString(routes.Count));
 
                 if (IsPlanValid(node))
                 {
@@ -214,6 +232,7 @@ namespace FlightPlanner.RoutePlanning
 
                         nextNode.costFromStart = CalculateCost(nextNode);
                         nextNode.estimatedCost = EstimateCost(nextNode, routes);
+                        nextNode.totalCost = nextNode.costFromStart + nextNode.estimatedCost;
                         
                         openList.Add(nextNode);
                     }
@@ -264,14 +283,8 @@ namespace FlightPlanner.RoutePlanning
         //--------------------------------------------------------------------------------------------------------------------------------
         private int CalculateCost(AStarNode node)
         {
-            if (node.parent != null)
-            {
-                return node.parent.costFromStart + node.parent.airportData.DistanceTo(node.airportData);
-            }
-            else
-            {
-                return 1;
-            }
+            Debug.Assert(node.parent != null);
+            return node.parent.costFromStart + node.parent.airportData.DistanceTo(node.airportData);
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
@@ -283,7 +296,30 @@ namespace FlightPlanner.RoutePlanning
         //--------------------------------------------------------------------------------------------------------------------------------
         private int EstimateCost(AStarNode node, IList<Route> routes)
         {
-            return CountOpenRoutes(node, routes) * CargoCostFactor;
+            return CountOpenRoutes(node, routes) * avgDistance + GetFarthest(node, routes);
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private int GetFarthest(AStarNode node, IList<Route> routes)
+        {
+            int farthest = 0;
+            for (int i = 0; i < routes.Count; ++i)
+            {
+                Route route = routes[i];
+                if (route.from == node.airportData || route.to == node.airportData)
+                    continue;
+
+                ulong flag = BIT << i;
+                if ((node.loaded & flag) == 0)
+                {
+                    farthest = Math.Max(farthest, node.airportData.DistanceTo(route.from));
+                }
+                else if ((node.unloaded & flag) == 0)
+                {
+                    farthest = Math.Max(farthest, node.airportData.DistanceTo(route.to));
+                }
+            }
+            return farthest;
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
@@ -321,7 +357,7 @@ namespace FlightPlanner.RoutePlanning
         //------------------------------------------------------------------------------------------------------------------------------------------
         private static int CompareNodes(AStarNode a, AStarNode b)
         {
-            int diff = b.TotalCost - a.TotalCost;
+            int diff = b.totalCost - a.totalCost;
             return diff;
         }
     }

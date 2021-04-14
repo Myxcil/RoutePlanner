@@ -254,7 +254,7 @@ namespace RoutePlanner
 
             using (AStarRoute search = new AStarRoute())
             {
-                search.CargoCostFactor = (int)numericUpDownCargoWeight.Value;
+                search.CostScale = (int)numericUpDownScale.Value;
                 
                 IList<FlightPlanLeg> legs = search.CalculateRoute(routes, AirportData.Airports);
 
