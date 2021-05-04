@@ -69,6 +69,7 @@ namespace RoutePlanner
             // 
             // checkedListBoxRoutes
             // 
+            this.checkedListBoxRoutes.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.checkedListBoxRoutes.FormattingEnabled = true;
             this.checkedListBoxRoutes.Location = new System.Drawing.Point(287, 13);
             this.checkedListBoxRoutes.Name = "checkedListBoxRoutes";
@@ -180,6 +181,7 @@ namespace RoutePlanner
             // 
             // labelTotalDistance
             // 
+            this.labelTotalDistance.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.labelTotalDistance.AutoSize = true;
             this.labelTotalDistance.Location = new System.Drawing.Point(284, 245);
             this.labelTotalDistance.Name = "labelTotalDistance";
@@ -199,6 +201,7 @@ namespace RoutePlanner
             // 
             // labelTotalSearch
             // 
+            this.labelTotalSearch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.labelTotalSearch.AutoSize = true;
             this.labelTotalSearch.Location = new System.Drawing.Point(9, 518);
             this.labelTotalSearch.Name = "labelTotalSearch";
@@ -218,6 +221,9 @@ namespace RoutePlanner
             // 
             // textBoxResult
             // 
+            this.textBoxResult.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.textBoxResult.Location = new System.Drawing.Point(12, 276);
             this.textBoxResult.Multiline = true;
             this.textBoxResult.Name = "textBoxResult";
@@ -267,6 +273,7 @@ namespace RoutePlanner
             // 
             // progressBarSearch
             // 
+            this.progressBarSearch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.progressBarSearch.Location = new System.Drawing.Point(288, 276);
             this.progressBarSearch.MarqueeAnimationSpeed = 0;
             this.progressBarSearch.Name = "progressBarSearch";

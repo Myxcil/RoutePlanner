@@ -34,7 +34,7 @@ namespace FlightPlanner.RoutePlanning
         //--------------------------------------------------------------------------------------------------------------------------------
         public IList<FlightPlanLeg> CalculateRoute(IList<Route> routes, IDictionary<string, AirportData> airports)
         {
-            if (Verbose) DebugPrintRoutes(routes, airports);
+            if (Verbose) DebugPrintRoutes(routes);
 
             CreateUniqueAirports(routes, airports);
 
@@ -59,13 +59,14 @@ namespace FlightPlanner.RoutePlanning
 
                 int cargo = 0;
                 int passenger = 0;
+                ulong loaded = 0;
                 for (int i = 0; i < flightPlan.Count; ++i)
                 {
-                    EvaluateCargoChange(flightPlan[i].airportData, flightPlan[i].loaded, routes, ref cargo, ref passenger);
+                    EvaluateCargoChange(flightPlan[i].airportData, routes, ref loaded, ref cargo, ref passenger);
                     flightPlan[i].cargo = cargo;
                     flightPlan[i].passenger = passenger;
                 }
-                                
+
                 if (Verbose) DebugPrintFlightPlan(flightPlan);
             }
             return flightPlan;
@@ -92,17 +93,19 @@ namespace FlightPlanner.RoutePlanning
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
-        private void EvaluateCargoChange(AirportData airportData, ulong loaded, IList<Route> routes, ref int cargo, ref int passenger)
+        private void EvaluateCargoChange(AirportData airportData, IList<Route> routes, ref ulong loaded, ref int cargo, ref int passenger)
         {
-            for(int i=0; i < routes.Count; ++i)
+            for (int i = 0; i < routes.Count; ++i)
             {
                 Route route = routes[i];
-                if (route.from == airportData)
+                bool isLoaded = (loaded & (BIT << i)) != 0;
+                if (!isLoaded && route.from == airportData)
                 {
                     cargo += route.cargo;
                     passenger += route.passenger;
+                    loaded |= BIT << i;
                 }
-                else if (route.to == airportData && (loaded & (BIT << i)) != 0)
+                else if (isLoaded && route.to == airportData)
                 {
                     cargo -= route.cargo;
                     passenger -= route.passenger;
@@ -130,7 +133,7 @@ namespace FlightPlanner.RoutePlanning
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
-        private void DebugPrintRoutes(IList<Route> routes, IDictionary<string, AirportData> airports)
+        private void DebugPrintRoutes(IList<Route> routes)
         {
             Debug.WriteLine(string.Format("Routes: {0}", routes.Count));
             int totalDistance = 0;
@@ -225,10 +228,11 @@ namespace FlightPlanner.RoutePlanning
                     ulong unloaded = node.unloaded;
                     if (EvaluateLoad(airportData, routes, ref loaded, ref unloaded))
                     {
-                        AStarNode nextNode = new AStarNode(node, airportData);
-
-                        nextNode.loaded = loaded;
-                        nextNode.unloaded = unloaded;
+                        AStarNode nextNode = new AStarNode(node, airportData)
+                        {
+                            loaded = loaded,
+                            unloaded = unloaded
+                        };
 
                         nextNode.costFromStart = CalculateCost(nextNode);
                         nextNode.estimatedCost = EstimateCost(nextNode, routes);
