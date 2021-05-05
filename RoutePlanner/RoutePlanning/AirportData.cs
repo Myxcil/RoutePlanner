@@ -10,35 +10,38 @@ namespace FlightPlanner.RoutePlanning
     class AirportData
     {
         //--------------------------------------------------------------------------------------------------------------------------------
-        public readonly int airportId;
-        public readonly string name;
-        public readonly string city;
-        public readonly string country;
-        public readonly string IATA;
-        public readonly string ICAO;
-        public readonly double latitude;
-        public readonly double longitude;
-        public readonly int altitude;
-        public readonly float timeZone;
-        public readonly char daylightSavings;
-        public readonly string tzOlson;
+        public readonly string ident;
         public readonly string type;
+        public readonly string name;
+        public readonly int elevation;
+        public readonly string continent;
+        public readonly string country;
+        public readonly string region;
+        public readonly string municipality;
+        public readonly string gps;
+        public readonly string iata;
+        public readonly string local;
+        public readonly double longitude;
+        public readonly double latitude;
 
         //--------------------------------------------------------------------------------------------------------------------------------
         private static readonly Dictionary<string, AirportData> airports = new Dictionary<string, AirportData>();
         public static IDictionary<string, AirportData> Airports { get { return airports; } }
 
         //--------------------------------------------------------------------------------------------------------------------------------
+        private static readonly string airportData = "airport-codes_csv.csv";
+
+        //--------------------------------------------------------------------------------------------------------------------------------
         static AirportData()
         {
             airports.Clear();
-            using (TextFieldParser textFieldParser = new TextFieldParser("airports.dat"))
+            using (TextFieldParser textFieldParser = new TextFieldParser(airportData))
             {
                 textFieldParser.SetDelimiters(",");
                 while (!textFieldParser.EndOfData)
                 {
                     string[] elements = textFieldParser.ReadFields();
-                    if (elements != null)
+                    if (elements != null && elements.Length == 12 && elements[0].Length <= 4)
                     {
                         AirportData airportData = new AirportData(elements);
                         airports.Add(airportData.ICAO, airportData);
@@ -53,26 +56,31 @@ namespace FlightPlanner.RoutePlanning
         //--------------------------------------------------------------------------------------------------------------------------------
         private AirportData(string[] elements)
         {
-            airportId = int.Parse(elements[0]);
-            name = elements[1];
-            city = elements[2];
-            country = elements[3];
-            IATA = elements[4];
-            ICAO = elements[5];
-            latitude = double.Parse(elements[6], cultureInfo.NumberFormat);
-            longitude = double.Parse(elements[7], cultureInfo.NumberFormat);
-            altitude = int.Parse(elements[8]);
-            float.TryParse(elements[9], out timeZone);
-            daylightSavings = elements[10][0];
-            tzOlson = elements[11];
-            type = elements[12];
+            ident = elements[0];
+            type = elements[1];
+            name = elements[2];
+            int.TryParse(elements[3], out elevation);
+            continent = elements[4];
+            country = elements[5];
+            region = elements[6];
+            municipality = elements[7];
+            gps = elements[8];
+            iata = elements[9];
+            local = elements[10];
+
+            string[] coords = elements[11].Split(',');
+            latitude = double.Parse(coords[0], cultureInfo.NumberFormat);
+            longitude = double.Parse(coords[1], cultureInfo.NumberFormat);
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
         public override string ToString()
         {
-            return ICAO;
+            return ident;
         }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        public string ICAO => ident;
 
         //--------------------------------------------------------------------------------------------------------------------------------
         public int DistanceTo(AirportData other)

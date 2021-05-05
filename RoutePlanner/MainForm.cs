@@ -25,11 +25,14 @@ namespace RoutePlanner
         //--------------------------------------------------------------------------------------------------------------------------------
         private StringBuilder sb = null;
         private int totalDistance = 0;
+        private int maxCargo = 0;
+        private int maxPassenger = 0;
+
         private delegate void OnFinished();
         private Thread threadSearch;
 
         //--------------------------------------------------------------------------------------------------------------------------------
-        private void MainForm_Load(object sender, System.EventArgs e)
+        private void MainForm_Load(object sender, EventArgs e)
         {
             airportIDs = AirportData.Airports.Keys.ToArray();
 
@@ -82,15 +85,15 @@ namespace RoutePlanner
             new Route("LFML", "EHAM", 344, 0),
             new Route("EHAM", "LFPG", 184, 0),
             new Route("LFPG", "EHBK", 194, 0),
-            new Route("EHBK", "LIML", 567, 0),
+            new Route("EHBK", "LIME", 567, 0),
             
             new Route("EGMC", "EGGP", 500, 0),
-            new Route("EGGP", "EFTP", 0, 3),
-            new Route("EFTP", "LMML", 249, 0),
-            new Route("LMML", "LERT", 415, 0),
-            new Route("LERT", "EDLV", 443, 0),
-            new Route("EDLV", "LEVT", 410, 0),
-            new Route("LEVT", "EPKT", 485, 0),
+            new Route("EGGP", "EFTU", 0, 3),
+            new Route("EFTU", "LMML", 249, 0),
+            new Route("LMML", "LEJR", 415, 0),
+            new Route("LEJR", "EDLV", 443, 0),
+            new Route("EDLV", "LEXJ", 410, 0),
+            new Route("LEXJ", "EPKT", 485, 0),
             new Route("EPKT", "LIRP", 0, 1),
         };
         /**/
@@ -250,6 +253,8 @@ namespace RoutePlanner
             IList<Route> routes = (IList<Route>)data;
 
             totalDistance = 0;
+            maxCargo = 0;
+            maxPassenger = 0;
             sb = new StringBuilder();
 
             using (AStarRoute search = new AStarRoute())
@@ -263,9 +268,13 @@ namespace RoutePlanner
                     FlightPlanLeg prev = legs[i - 1];
                     FlightPlanLeg curr = legs[i];
                     int distance = prev.airportData.DistanceTo(curr.airportData);
+                    totalDistance += distance;
+
+                    maxCargo = Math.Max(maxCargo, prev.cargo);
+                    maxPassenger = Math.Max(maxPassenger, prev.passenger);
+
                     sb.AppendFormat("{0} -> {1} {2,5}nm {3,6}lb {4,4}p", prev.airportData.ICAO, curr.airportData.ICAO, distance, prev.cargo, prev.passenger);
                     sb.AppendLine();
-                    totalDistance += distance;
                 }
             }
 
@@ -285,7 +294,7 @@ namespace RoutePlanner
             }
 
             textBoxResult.Text = sb != null ? sb.ToString() : string.Empty;
-            labelTotalSearch.Text = string.Format("Total: {0}nm", totalDistance);
+            labelTotalSearch.Text = string.Format("Total: {0}nm  MaxC: {1}lb  MaxP: {2}", totalDistance, maxCargo, maxPassenger);
            
             progressBarSearch.Value = 0;
             progressBarSearch.MarqueeAnimationSpeed = 0;
