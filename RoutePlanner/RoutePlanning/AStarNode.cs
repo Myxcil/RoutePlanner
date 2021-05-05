@@ -26,24 +26,29 @@ namespace FlightPlanner.RoutePlanning
             this.airportData = airportData;
         }
 
+        //-----------------------------------------------------------------------------------------------------------------------------
         public string ToString(int numRoutes)
         {
             int done = CountMatches(loaded, unloaded, numRoutes);
+            string strLoaded = ToBinaryString(loaded, numRoutes);
+            string strUnloaded = ToBinaryString(unloaded, numRoutes);
             if (parent != null)
             {
-                return string.Format("{0} ({1}) {2} {3} {4}/{5} T={6}", airportData.ICAO, parent.airportData.ICAO, ToBinaryString(loaded, numRoutes), ToBinaryString(unloaded, numRoutes), done, numRoutes, totalCost);
+                return string.Format("{0} ({1}) {2} {3} {4}/{5} T={6}", airportData.ICAO, parent.airportData.ICAO, strLoaded, strUnloaded, done, numRoutes, totalCost);
             }
             else
             {
-                return string.Format("{0} (----) {1} {2} {3}/{4} T={5}", airportData.ICAO, ToBinaryString(loaded, numRoutes), ToBinaryString(unloaded, numRoutes), done, numRoutes, totalCost);
+                return string.Format("{0} (----) {1} {2} {3}/{4} T={5}", airportData.ICAO, strLoaded, strUnloaded, done, numRoutes, totalCost);
             }
         }
 
+        //-----------------------------------------------------------------------------------------------------------------------------
         private static string ToBinaryString(ulong value, int numRoutes)
         {
             return System.Convert.ToString((long)value, 2).PadLeft(numRoutes, '0');
         }
 
+        //-----------------------------------------------------------------------------------------------------------------------------
         private static int CountMatches(ulong a, ulong b, int numBits)
         {
             int numMatches = 0;

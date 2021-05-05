@@ -28,8 +28,11 @@ namespace RoutePlanner
         private int maxCargo = 0;
         private int maxPassenger = 0;
 
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private AStarRoute aStarSearch = null;
         private delegate void OnFinished();
         private Thread threadSearch;
+        private System.Windows.Forms.Timer updateTimer;
 
         //--------------------------------------------------------------------------------------------------------------------------------
         private void MainForm_Load(object sender, EventArgs e)
@@ -43,7 +46,9 @@ namespace RoutePlanner
 
             ValidateInputs();
 
+#if DEBUG
             CreateTestData();
+#endif
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
@@ -63,7 +68,6 @@ namespace RoutePlanner
         /**
         private static readonly Route[] testRoutes =
         {
-            /*
             new Route("MYNN", "KMIA", 368, 0),
             new Route("KMIA", "MYCB", 282, 0),
             new Route("MYCB", "KHST", 204, 0),
@@ -130,6 +134,8 @@ namespace RoutePlanner
             RefreshTotalDistance();
 
             ValidateInputs();
+
+            RefreshCostScale();
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
@@ -236,12 +242,45 @@ namespace RoutePlanner
 
             threadSearch = new Thread(LaunchRouteSearch);
             threadSearch.Start(routes);
+
+            if (updateTimer == null)
+            {
+                updateTimer = new System.Windows.Forms.Timer();
+                updateTimer.Interval = 100;
+                updateTimer.Tick += new EventHandler(RefreshSearchStats);
+            }
+            updateTimer.Enabled = true;
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
         private void buttonStop_Click(object sender, EventArgs e)
         {
             OnSearchDone();
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void RefreshSearchStats(object sender, EventArgs args)
+        {
+            if (aStarSearch == null)
+                return;
+
+            labelSearchStats.Text = string.Format("Open: {0}  Routes: {1:0.0}%", aStarSearch.NumOpen, aStarSearch.RoutesComplete);
+        }
+
+        //--------------------------------------------------------------------------------------------------------------------------------
+        private void RefreshCostScale()
+        {
+            int distance = 0;
+            for (int i = 0; i < checkedListBoxRoutes.Items.Count; ++i)
+            {
+                Route route = (Route)checkedListBoxRoutes.Items[i];
+                distance += route.from.DistanceTo(route.to);
+            }
+            if (checkedListBoxRoutes.Items.Count > 0)
+            {
+                distance /= checkedListBoxRoutes.Items.Count;
+            }
+            numericUpDownScale.Value = distance / 2;
         }
 
         //--------------------------------------------------------------------------------------------------------------------------------
@@ -257,11 +296,11 @@ namespace RoutePlanner
             maxPassenger = 0;
             sb = new StringBuilder();
 
-            using (AStarRoute search = new AStarRoute())
+            using (aStarSearch = new AStarRoute())
             {
-                search.CostScale = (int)numericUpDownScale.Value;
+                aStarSearch.CostScale = (int)numericUpDownScale.Value;
                 
-                IList<FlightPlanLeg> legs = search.CalculateRoute(routes, AirportData.Airports);
+                IList<FlightPlanLeg> legs = aStarSearch.CalculateRoute(routes, AirportData.Airports);
 
                 for (int i = 1; i < legs.Count; ++i)
                 {
@@ -298,6 +337,9 @@ namespace RoutePlanner
            
             progressBarSearch.Value = 0;
             progressBarSearch.MarqueeAnimationSpeed = 0;
+
+            updateTimer.Enabled = false;
+            RefreshSearchStats(null, null);
 
             buttonSearch.Enabled = true;
             buttonStop.Enabled = false;
