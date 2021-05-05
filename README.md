@@ -5,6 +5,8 @@ Doesn't take cargo or passenger limits into account (yet).
 
 I wrote this because of several missions that had airports close to each other and I was too lazy to do this by hand :)
 
+You can use Ctrl+C to copy a leg from the OnAir job list and paste it into the app.
+
 Airport data was downloaded from https://www.partow.net/miscellaneous/airportdatabase/. Possibly not all airports from OnAir available.
 
 Install:
